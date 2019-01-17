@@ -1830,12 +1830,49 @@ OpcUa_FinishErrorHandling;
 static OpcUa_StatusCode OpcUa_SecureStream_AttachBuffer(OpcUa_Stream*   a_pStrm,
                                                         OpcUa_Buffer*   a_pBuffer)
 {
+    OpcUa_SecureStream* pSecureStream = OpcUa_Null;
+
 OpcUa_InitializeStatus(OpcUa_Module_SecureStream, "AttachBuffer");
 
-    OpcUa_ReferenceParameter(a_pStrm);
-    OpcUa_ReferenceParameter(a_pBuffer);
+    OpcUa_ReturnErrorIfArgumentNull(a_pStrm);
+    OpcUa_ReturnErrorIfArgumentNull(a_pBuffer);
+    OpcUa_ReturnErrorIfArgumentNull(a_pStrm->Handle);
 
-    OpcUa_GotoErrorWithStatus(OpcUa_BadNotSupported);
+    pSecureStream = (OpcUa_SecureStream*)a_pStrm->Handle;
+
+    switch(a_pStrm->Type)
+    {
+    case OpcUa_StreamType_Output:
+        {
+            if(pSecureStream->nBuffers > 0)
+            {
+                /* clear the old buffer */
+                OpcUa_Buffer_Clear(&pSecureStream->Buffers[0]);
+            }
+            else
+            {
+                /* now, the first buffer will be in use */
+                pSecureStream->nBuffers = 1;
+            }
+
+            /* set new buffer at index 0 */
+            pSecureStream->Buffers[0] = *a_pBuffer;
+            a_pBuffer->Data = OpcUa_Null;
+
+            break;
+        }
+    case OpcUa_StreamType_Input:
+        {
+            uStatus = OpcUa_BadNotSupported;
+
+            break;
+        }
+    default:
+        {
+            uStatus = OpcUa_BadInvalidArgument;
+            OpcUa_GotoError;
+        }
+    }
 
 OpcUa_BeginErrorHandling;
 OpcUa_FinishErrorHandling;
